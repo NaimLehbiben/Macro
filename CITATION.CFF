@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it using the following DOI.
+title: Replicating research paper "The temperature-induced monetary stress in the euro area"
+authors:
+  - name: Naim LEHBIBEN
+    email: naim.lehbiben@dauphine.eu
+  - name: Badr Eddine EL HAMZAOUI
+    email: badr-eddine.el-hamzaoui@dauphine.eu
+  - name: Antoine PORTALIER
+    email: antoine.portalier@dauphine.eu
+  - name: Vincent PIEDBOIS
+    email: vincent.piedbois@dauphine.eu
+license: MIT

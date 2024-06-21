@@ -25,7 +25,7 @@ beta_T_std = zeros(H+1,nb_country);
 
 
 % Boucle sur les pays
-figure(1)
+figure()
 for i=1:nb_country
 
     % Calcul pour le mois m des prix au mois m-1
@@ -88,7 +88,7 @@ for i=1:nb_country
     fill([x; flipud(x)], [beta_conf_sup; flipud(beta_conf_inf)], ...
         'b', 'FaceAlpha', 0.2, 'EdgeColor', 'none');       
 
-    % IFRs
+    % IRFs
     hold on
     line(xlim, [0 0], 'Color', 'k', 'LineWidth', 1);
     plot(0:H, beta_T(:,i), 'LineWidth',1.5);  
@@ -97,8 +97,6 @@ for i=1:nb_country
     sgtitle(graph_title);
     
 end
-
-
 
 
 end

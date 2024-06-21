@@ -4,7 +4,7 @@
 
 clc; clear all;
 
-%% Chargement des données
+%% 3. Chargement des données
 
 % Récupération des pays
 opts = detectImportOptions("Data.xlsx");
@@ -20,11 +20,10 @@ anomaly_forecast_SSP1 = readmatrix("Data.xlsx","Sheet","Anomaly_2100_SSP1");
 anomaly_forecast_SSP3 = readmatrix("Data.xlsx","Sheet","Anomaly_2100_SSP3");
 anomaly_forecast_SSP5 = readmatrix("Data.xlsx","Sheet","Anomaly_2100_SSP5");
 
-% Metriques macroéconomique
+% Métriques macroéconomique
 hicp =  readmatrix("Data.xlsx","Sheet","HICP");
 gdp =  readmatrix("Data.xlsx","Sheet","GDP");
 dates = datetime(hicp(:,1), 'ConvertFrom', 'excel');
-
 
 % Suppression dates
 anomaly = anomaly(:,2:end);
@@ -38,7 +37,7 @@ anomaly_forecast_SSP1 = anomaly_forecast_SSP1(2:end,2:end); % SSP1 2.6
 anomaly_forecast_SSP3 = anomaly_forecast_SSP3(2:end,2:end);
 anomaly_forecast_SSP5 = anomaly_forecast_SSP5(2:end,2:end);
 
-%% 3.2.A - Map des anomalies
+%% 4.1 - Map des anomalies températures 
 
 % Mapping Toolbox + borders package nécessaires
 
@@ -64,7 +63,7 @@ anomaly_forecast_SSP5 = anomaly_forecast_SSP5(2:end,2:end);
 % clim(datarange) 
 % 
 
-%% 3.2.B - Map des anomalies forecastées
+%% 4.4.1 - Map des anomalies forecastées
 % 
 % % Colormap
 % cmap = colormap(flipud(pink(100))); % specify the colormap
@@ -87,17 +86,16 @@ anomaly_forecast_SSP5 = anomaly_forecast_SSP5(2:end,2:end);
 % colormap(cmap)
 % clim(datarange) 
 
-%% 3.3.A - Calcul des IRFs - HICP
+%% 4.2 - Calcul des IRFs - HICP
 
 % Paramètres
 H_m = 24;
-p_HICP = 6; % nombre de lag de l'HICP
+p_HICP = 6; % Nombre de lag de l'HICP
 L = size(anomaly,1) - p_HICP;
 alpha = 0.90;
 
-% Variables
-T_m = anomaly(2:end,:); % % date deb : 02/1996 // date fin : 12/2021
-
+% Anomalie température
+T_m = anomaly(2:end,:); % date deb : 02/1996 // date fin : 12/2021
 
 %, Affichage des IRFs
 [beta_T, beta_T_std] = Plot_IRFs(H_m, p_HICP, country_names, "IRFs - HICP", hicp, T_m, []);
@@ -108,7 +106,7 @@ for k = 1:length(figHandles)
     ylim(figHandles(k), [-0.2 0.2]);
 end
 
-%% 3.3.B - Calcul des IRFs - GDP
+%% 4.2 - Calcul des IRFs - GDP
 
 % Paramètres
 H_q = 8;
@@ -116,7 +114,7 @@ p_gdp = 2; % nombre de lag du GDP
 L = size(anomaly,1)/3 - p_gdp;
 alpha = 0.90;
 
-% Variables
+% Agregation temporelle anomalie température
 T_q = zeros(size(anomaly,1)/3,nb_country);
 for i=1:nb_country
     T_q(:,i) = sum(reshape(anomaly(:,i), 3, []));
@@ -133,7 +131,55 @@ for k = 1:length(figHandles)
     ylim(figHandles(k), [-0.5 0.7]);
     xlim(figHandles(k),[0 8]);
 end
-%% 4.1.A - Inflation projection 2100 - Equation 5 et Figure 8
+
+%% 4.4.1 - Augmentation projetée de l'anomalie entre 2025-2100 pour chauqe scénario
+
+% Les chiffres donnés dans 5.1 : anomaly_2100 - anomaly_2025
+
+disp("Augmentation moyenne de la température entre 2025 et 2100 selon le scénario : ");
+mean_anomaly_SSP1 = mean(anomaly_forecast_SSP1(end,:)-anomaly_forecast_SSP1(1,:));
+mean_anomaly_SSP2 = mean(anomaly_forecast(end,:)-anomaly_forecast(1,:));
+mean_anomaly_SSP3 = mean(anomaly_forecast_SSP3(end,:)-anomaly_forecast_SSP3(1,:));
+mean_anomaly_SSP5 = mean(anomaly_forecast_SSP5(end,:)-anomaly_forecast_SSP5(1,:));
+fprintf('SSP1 : %3f\n', mean_anomaly_SSP1);
+fprintf('SSP2 : %3f\n', mean_anomaly_SSP2);
+fprintf('SSP3 : %3f\n', mean_anomaly_SSP3);
+fprintf('SSP5 : %3f\n', mean_anomaly_SSP5);
+
+% Anomalie 2100 - 2025, pour chaque scénario
+data = [anomaly_forecast_SSP1(end,:)-anomaly_forecast_SSP1(1,:); 
+        anomaly_forecast(end,:)-anomaly_forecast(1,:);
+        anomaly_forecast_SSP3(end,:)-anomaly_forecast_SSP3(1,:);
+        anomaly_forecast_SSP5(end,:)-anomaly_forecast_SSP5(1,:)]'; 
+
+% Graphique histogramme
+figure;
+h = bar(data, 'grouped');
+
+% Couleurs des barres --> dégradé de bleu
+colors = [
+    0.728, 0.867, 0.902; % Bleu clair
+    0.429, 0.808, 0.980;  % Bleu ciel
+    0, 0, 1;             % Bleu
+    0, 0, 0.545         % Bleu foncé 
+    ];
+
+for k = 1:length(h)
+    h(k).FaceColor = colors(k, :);
+end
+
+% Titres graphique et axes
+ylabel('Temperature Anomaly');
+title("Projected changes in temperatures (2025-2100)");
+set(gca, 'XTickLabel', country_names); % noms pays axe abscisses
+
+% Légende
+legend({'SSP1', 'SSP2', 'SSP3', 'SSP5'}, 'Location', 'northeastoutside');
+% Ajuster la mise en page pour que tout soit lisible
+set(gca, 'FontSize', 12);
+grid on;
+
+%% 4.4.2 - Inflation projection 2100 
 
 % Betas
 last_beta_T = beta_T(end,:);
@@ -155,7 +201,7 @@ forecast_inflation = anomaly_forecast.*last_beta_T;
 forecast_inflation_SSP1 = anomaly_forecast_SSP1.*last_beta_T; 
 forecast_inflation_SSP5 = anomaly_forecast_SSP5.*last_beta_T; 
 
-% Graphique (Figure 8)
+% Graphique
 figure()
 for i=1:nb_country
 
@@ -184,7 +230,7 @@ end
 % Titre
 sgtitle('Temperature-induced changes in inflation (HICP) for each euro area economy (2025-2100)');
 
-%% 4.1.B - GDP projection 2100 - Equation 6 et Figure 9
+%% 4.4.2 - GDP projection 2100 
 
 % Betas
 last_beta_gdp = beta_gdp(end,:);
@@ -235,9 +281,9 @@ end
 % Titre
 sgtitle('Temperature-induced changes in GDP per capita for each euro area economy (2025-2100)');
 
-%% 4.2 - Temperature induced policy rate - Figure 10
+%% 5.1 - Taux directeur induit par la température
 
-% Equation 8
+% Prévisions de taux directeurs
 nb_years_forecast = length(anomaly_forecast);
 rate_forecast = ones(nb_years_forecast,nb_country)+1.5*forecast_inflation+0.5*forecast_gdp;
 rate_forecast_SSP1 = ones(nb_years_forecast,nb_country)+1.5*forecast_inflation_SSP1+0.5*forecast_gdp_SSP1;
@@ -273,7 +319,7 @@ end
 % Titre
 sgtitle('Temperature-induced changes in policy rate for each euro area economy (2025-2100)');
 
-%% 4.3.A - Monetary policy stress - Equation 9 et Figure 5
+%% 5.2 - Stress monétaire par pays induit par la température
 
 % Matrice monetary stress
 monetary_stress = zeros(nb_years_forecast,nb_country);
@@ -323,9 +369,9 @@ end
 % Titre
 sgtitle('Monetary stress of euro area economies (2025-2100)');
 
-%% 4.3.B - GDP weighted aggregate monetary stress - Figure 7
+%% 5.2 - Stress monétaire agrégé induit par la température
 
-% Poids GDP par rapport au GDP de toute l'euro area 2021
+% Poids GDP par rapport au GDP de toute l'euro area - 2021
 gdp_weights = readmatrix("Data.xlsx","Sheet","GDP_weights");
 gdp_weights_avg = gdp_weights(2:end);
 
@@ -357,58 +403,10 @@ ax = gca; % Obtenir l'axe courant
 ax.XTick = min(x):25:max(x);
 hold off;
 
-%% 5.1.A - Average temperature increase 2025-2100
-
-% Les chiffres donnés dans 5.1 : anomaly_2100 - anomaly_2025
-
-disp("Augmentation moyenne de la température entre 2025 et 2100 selon le scénario : ");
-mean_anomaly_SSP1 = mean(anomaly_forecast_SSP1(end,:)-anomaly_forecast_SSP1(1,:));
-mean_anomaly_SSP2 = mean(anomaly_forecast(end,:)-anomaly_forecast(1,:));
-mean_anomaly_SSP3 = mean(anomaly_forecast_SSP3(end,:)-anomaly_forecast_SSP3(1,:));
-mean_anomaly_SSP5 = mean(anomaly_forecast_SSP5(end,:)-anomaly_forecast_SSP5(1,:));
-fprintf('SSP1 : %3f\n', mean_anomaly_SSP1);
-fprintf('SSP2 : %3f\n', mean_anomaly_SSP2);
-fprintf('SSP3 : %3f\n', mean_anomaly_SSP3);
-fprintf('SSP5 : %3f\n', mean_anomaly_SSP5);
-
-%% 5.1.B - Projected changes in temperatures Figure 11
-
-% Anomalie 2100 - 2025, pour chaque scénario
-data = [anomaly_forecast_SSP1(end,:)-anomaly_forecast_SSP1(1,:); 
-        anomaly_forecast(end,:)-anomaly_forecast(1,:);
-        anomaly_forecast_SSP3(end,:)-anomaly_forecast_SSP3(1,:);
-        anomaly_forecast_SSP5(end,:)-anomaly_forecast_SSP5(1,:)]'; 
-
-% Graphique histogramme
-figure;
-h = bar(data, 'grouped');
-
-% Couleurs des barres --> dégradé de bleu
-colors = [
-    0.728, 0.867, 0.902; % Bleu clair
-    0.429, 0.808, 0.980;  % Bleu ciel
-    0, 0, 1;             % Bleu
-    0, 0, 0.545         % Bleu foncé 
-    ];
-
-for k = 1:length(h)
-    h(k).FaceColor = colors(k, :);
-end
-
-% Titres graphique et axes
-ylabel('Temperature Anomaly');
-title("Projected changes in temperatures (2025-2100)");
-set(gca, 'XTickLabel', country_names); % noms pays axe abscisses
-
-% Légende
-legend({'SSP1', 'SSP2', 'SSP3', 'SSP5'}, 'Location', 'northeastoutside');
-
-% Ajuster la mise en page pour que tout soit lisible
-set(gca, 'FontSize', 12);
-grid on;
 
 
-%% Calcul des IRFs - HICP - Précipitations
+
+%% Annexe - Calcul des IRFs HICP - Anomalie précipitations
 
 % Paramètres
 H_m = 24;
@@ -417,13 +415,11 @@ L = size(anomaly_precipitation,1) - p_HICP;
 alpha = 0.90;
 
 % Variables
-T_m = anomaly_precipitation(2:end,:); % % date deb : 02/1996 // date fin : 12/2021
-
-graph_title = 'Figure 2: Effect of temperature anomaly precipitation on inflation rate (1996m1, 2021m12)';
+T_m = anomaly_precipitation(2:end,:); % date deb : 02/1996 // date fin : 12/2021
 
 % Affichage des IRFs
+graph_title = 'Figure 2: Effect of temperature anomaly precipitation on inflation rate (1996m1, 2021m12)';
 [beta_T_p, beta_T_p_std] = Plot_IRFs(H_m, p_HICP, country_names, graph_title, hicp, T_m, []);
-
 
 % Ajustement de l'échelle des graphiques 
 figHandles = findall(gcf, 'Type', 'axes');
@@ -431,7 +427,7 @@ for k = 1:length(figHandles)
     ylim(figHandles(k), [-0.008 0.008]);
 end
 
-%% Calcul des IRFs - GDP - Température -- Précipitations
+%% Annexe - Calcul des IRFs GDP - Anomalie précipitations
 
 % Paramètres
 H_q = 8;
@@ -446,9 +442,9 @@ for i=1:nb_country
 end
 T_q_p = T_q_p(2:end,:);
 
-graph_title = 'Figure 3:  Effect of temperature anomaly precipitation on GDP per capita (1996Q1, 2021Q4)';
 
 % Affichage des IRFs
+graph_title = 'Figure 3:  Effect of temperature anomaly precipitation on GDP per capita (1996Q1, 2021Q4)';
 [beta_gpd_p, beta_gpd_p_std] = Plot_IRFs(H_q, p_GDP, country_names, graph_title, gdp, T_q_p, []);
 
 % Ajustement de l'échelle des graphiques 
@@ -458,7 +454,7 @@ for k = 1:length(figHandles)
     xlim(figHandles(k),[0 8]);
 end
 
-%% Calcul des IRFs - HICP - With Control Variables
+%% Annexe - Calcul des IRFs HICP - With Control Variables
 
 % Paramètres
 H_m = 24;
@@ -467,7 +463,7 @@ L = size(anomaly,1) - p_HICP;
 alpha = 0.90;
 
 % Variables
-T_m = anomaly(2:end,:); % % date deb : 02/1996 // date fin : 12/2021
+T_m = anomaly(2:end,:); % date deb : 02/1996 // date fin : 12/2021
 
 
 % --- Variables de controle  --- %
@@ -484,7 +480,7 @@ trend_cub = trend.^3;
 Y_control = [seasonal_dummies(2:end, :), trend(2:end, :), trend_quad(2:end, :), trend_cub(2:end, :)];
 
 %, Affichage des IRFs
-[beta_T, beta_T_std] = Plot_IRFs(H_m, p_HICP, country_names, "IRFs - HICP", hicp, T_m, Y_control);
+[beta_T, beta_T_std] = Plot_IRFs(H_m, p_HICP, country_names, "IRFs - HICP - with control variables", hicp, T_m, Y_control);
 
 % Ajustement de l'échelle des graphiques 
 figHandles = findall(gcf, 'Type', 'axes');
@@ -492,7 +488,7 @@ for k = 1:length(figHandles)
     ylim(figHandles(k), [-0.2 0.2]);
 end
 
-%% Calcul des IRFs - GDP - With Control Variables
+%% Annexe - Calcul des IRFs GDP - With Control Variables
 
 % Paramètres
 H_q = 8;
@@ -521,7 +517,7 @@ trend_cub = trend.^3;
 Y_control = [seasonal_dummies(2:end, :) trend(2:end, :), trend_quad(2:end, :), trend_cub(2:end, :)];
 
 % Affichage des IRFs
-[beta_gdp, beta_gqp_std] = Plot_IRFs(H_q, p_gdp, country_names, "IRFs - GDP", gdp, T_q, Y_control);
+[beta_gdp, beta_gqp_std] = Plot_IRFs(H_q, p_gdp, country_names, "IRFs - GDP - with control variables", gdp, T_q, Y_control);
 
 % Ajustement de l'échelle des graphiques 
 figHandles = findall(gcf, 'Type', 'axes');
